@@ -1,0 +1,58 @@
+---
+title: "Homework04"
+author: "Marina Erceg"
+date: "2026-09-14"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true 
+    code_download: true 
+    code_folding: show
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Install Package & Import Data
+```{import data}
+install.packages("RSQLite")
+con = DBI::dbConnect(RSQLite::SQLite(), "../data/midwest_airbnb.db")
+listings = DBI::dbReadTable(con, "listings") 
+```
+
+## Question A1
+```{r Question A1}
+nrow(listings)
+```
+
+## Question A2
+```{r Question A2}
+listings |>
+  dplyr::count(city)
+```
+
+## Question A3
+```{r Question A3}
+chicago <- listings[listings[["city"]] == "Chicago", ]
+
+chicago[which.max(chicago[["price"]]), ]
+```
+
+## Question A4
+```{r Question A4}
+unique(chicago[["neighbourhood"]])
+length(unique(chicago[["neighbourhood"]]))
+```
+
+## Question A5
+```{r Question A5}
+sum(chicago[["host_is_superhost"]] == "t", na.rm = TRUE)
+```
+
+## Question A6
+```{r Question A6}
+sum(listings[["price"]] > 1000, na.rm = TRUE)
+```
