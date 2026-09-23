@@ -1,0 +1,95 @@
+---
+title: "Class 08"
+author: "Marina Erceg"
+date: "2026-09-23"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    numbered_sections: true
+    code_folding: show
+    code_download: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r install}
+install.packages("httr2")
+```
+
+```{r same_request_new_way}
+crashes = httr2::request("https://data.cincinnati-oh.gov/resource/rvmt-pkmq.json") |>
+  httr2::req_url_query("$limit" = 100) |>
+  httr2::req_perform() |>
+  httr2::resp_body_string() |>
+  jsonlite::fromJSON()
+```
+
+```{r another_one}
+httr2::request("https://data.cincinnati-oh.gov/resource/rvmt-pkmq.json") |>
+  httr2::req_url_query(
+    "$limit" = 5,
+    "$order" = "crashdate DESC"
+  ) |>
+  httr2::req_perform() |>
+  httr2::resp_body_string() |>
+  jsonlite::fromJSON()
+```
+
+
+```{r error_example}
+#httr2::request("https://data.cincinnati-oh.gov/resource/rvmt-pkmq.json") |>
+  #httr2::req_url_query(limit = 5) |>
+  #httr2::req_perform()
+```
+
+```{r using_FRED_key}
+httr2::request("https://api.stlouisfed.org/fred/series/observations") |>
+  httr2::req_url_query(
+    series_id = "IHLIDXUSOH",
+    api_key = Sys.getenv("FRED_API_KEY"),
+    file_type = "json"
+  ) |>
+  httr2::req_perform() |>
+  httr2::resp_body_string() |>
+  jsonlite::fromJSON()
+```
+
+```{r observations}
+reply = httr2::request("https://api.stlouisfed.org/fred/series/observations") |>
+  httr2::req_url_query(
+    series_id = "IHLIDXUSOH",
+    api_key = Sys.getenv("FRED_API_KEY"),
+    file_type = "json"
+  ) |>
+  httr2::req_perform() |>
+  httr2::resp_body_string() |>
+  jsonlite::fromJSON()
+
+ohio = reply$observations
+
+ohio = ohio |>
+  dplyr::select(date, value) |>
+  dplyr::mutate(
+    date = as.Date(date),
+    value = as.numeric(value)
+  )
+```
+
+```{r more_practice}
+httr2::request("https://api.stlouisfed.org/fred/series/observations") |>
+  httr2::req_url_query(
+    series_id = "IHLIDXUSTX",
+    api_key = Sys.getenv("FRED_API_KEY"),
+    file_type = "json",
+    observation_start = "2026-01-01"
+  ) |>
+  httr2::req_perform() |>
+  httr2::resp_body_string() |>
+  jsonlite::fromJSON()
+
+texas = reply$observations
+texas
+```
