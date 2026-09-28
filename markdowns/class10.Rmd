@@ -1,0 +1,84 @@
+---
+title: "Class 10: Web Scraping"
+author: "Marina Erceg"
+date: "2026-09-28"
+output: 
+  html_document:
+    toc: true
+    toc_floar: true
+    number_sections: true 
+    code_download: true 
+    code_folding: show
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## `robotstxt` example': MU Bulletin
+
+In the chunk below we used the [robotstxt package](https://github.com/ropensci/robotstxt) to check if we are allowd to write a program that scrapes the page: 
+<https://bulletin.miamioh.edu/courses-instruction/isa/>
+```{r bulletin}
+robotstxt::paths_allowed(
+  paths = "courses-instruction/isa/", 
+  domain = "https://bulletin.miamioh.edu/"
+)
+```
+
+The TRUE above means that you are allowed to scrape 
+
+## Applying the same check to Wikipedia
+```{r wikipedia}
+robotstxt::paths_allowed(
+  paths = "/wiki/Miami_RedHawks_football", 
+  domain = "en.wikipedia.org"
+)
+```
+
+## Applying the same check to Linkedin
+```{r linkedin}
+# In some cases, the robotstxt provides inconsistant answers 
+# typically the warninf with the answer that us incorrexct
+# solution: drop the trailing slash from the URL
+# even better check with the robots.txt which is the ground truth
+robotstxt::paths_allowed(
+  paths = "/jobs/", 
+  domain = "www.linkedin.com"
+)
+```
+
+## Applying the same check to Indeed
+```{r indeed}
+# Checking the /jobs path 
+robotstxt::paths_allowed(
+  paths = "/jobs", 
+  domain = "www.indeed.com"
+)
+
+# Checking the /viewjob path 
+robotstxt::paths_allowed(
+  paths = "/viewjob", 
+  domain = "www.indeed.com"
+)
+```
+
+## Scrape Miami's Bulletin for ISA 
+```{r scrape_bulletin}
+# checking whether we are allowed to scrape this omfo 
+# This is done above and found to bve TRUE 
+
+# I will load the backend of the HTML into R using 
+# [a] rvest::readhtml() | sometimes rvest::read_html_live() if the page has some dynamic content 
+# [b] in some cases, we will craft this as a request as shown in slides httr2::request() > ...> httr2resp_body_html()
+
+isa_courses_in_r = rvest::read_html("https://bulletin.miamioh.edu/courses-instruction/isa/")
+
+# we will extract the course titles, which we can do in a single pipeline
+# given that they look the same on the rendered web page in Chrome
+# (bolded, same font size and font type)
+isa_courses_in_r |> 
+   rvest::html_elements("sc_sccoursedescs > div:nth-child(24) > p.courseblocktitle > strong") |>
+ rvest::html_text2() -> isa_titles
+
+```
