@@ -97,4 +97,10 @@ courses_df_from_purrr = purrr::map_df(.x = dept_abbrv, .f = scrape_mu_bulletin)
 The website that we want to scrape is called: <https://www.planecrashinfo.com/> and it contains a database of plane crashes in a year. 
 
 ```{r}
-s
+year = 2025
+
+crash_url = paste0('https://www.planecrashinfo.com/', year, '/', year, '.htm')
+
+crash_page = rvest::read_html(crash_url, encoding = "ISO-8859-1")
+crash_page
+```
