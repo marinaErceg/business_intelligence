@@ -14,8 +14,3 @@ qc = querychat::querychat(
   extra_instructions = "data/extra_instructions.md"
 )
 qc$app()
-
-httr2::request("https://api.openai.com/v1/models") |>
-  httr2::req_auth_bearer_token(Sys.getenv("OPENAI_API_KEY")) |>
-  httr2::req_perform()
-
