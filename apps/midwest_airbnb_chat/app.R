@@ -1,3 +1,6 @@
+library(shiny)
+library(bslib)
+
 con = DBI::dbConnect(RSQLite::SQLite(), "data/midwest_airbnb.db")
 
 client = ellmer::chat_openai(
@@ -13,4 +16,30 @@ qc = querychat::querychat(
   data_description   = "data/data_desc.md",
   extra_instructions = "data/extra_instructions.md"
 )
-qc$app()
+
+ui = page_sidebar(
+  title   = "Midwest Airbnb Explorer",
+  theme   = bs_theme(primary = "#FF5A5F"),
+  sidebar = qc$sidebar(width = 350),
+  card(card_header(textOutput("title")),
+       DT::DTOutput("table")),
+  accordion(open = TRUE,
+    accordion_panel("SQL", verbatimTextOutput("sql")),
+    accordion_panel("About",
+      p("Listings come from Inside Airbnb: Chicago (snapshot 2026-07-20), ",
+        "Columbus (2026-07-23), and the Twin Cities (2026-07-21)."),
+      p("Built by Marina Erceg for ISA 401 at Miami University."))
+  )
+)
+
+server = function(input, output, session) {
+  vals = qc$server()
+  output$title = renderText(vals$title() %||% "All listings")
+  output$table = DT::renderDT(vals$df(),
+                              options = list(pageLength = 10, scrollX = TRUE))
+  output$sql   = renderText(vals$sql() %||%
+                            "SELECT * FROM listings")
+}
+
+shinyApp(ui, server)
+
