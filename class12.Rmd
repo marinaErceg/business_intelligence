@@ -1,0 +1,89 @@
+---
+title: "Class 12"
+author: "Marina Erceg"
+date: "2026-10-07"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true 
+    code_download: true 
+    code_folding: show
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## ISA 125 Extraction 
+
+```{r isa125}
+chat = ellmer::chat_openai(
+  model = "gpt-5.6-luna"
+)
+
+isa125_courseblock = rvest::read_html("https://bulletin.miamioh.edu/courses-instruction/isa") |> 
+  rvest::html_element("#sc_sccoursedescs > div:nth-child(1)") |>
+  rvest::html_text2()
+  
+chat$chat_structured(
+  isa125_courseblock, 
+  type = ellmer::type_object(
+    # code is the name of the first element in the returned sublist 
+    # type_string -> forces that element to be of the type chr
+    code = ellmer::type_string(
+      description = "The three letter abbreviation for the course and its number. 
+      for example, ISA 999 or FIN 444"
+    ),
+    name = ellmer::type_string(
+      description = "The title of the course without the three letter abbreviation and the  number. For example, Introduction to Macroeconomic. Do not return a period atfer the name"
+    ), 
+    cr_hr = ellmer::type_integer(
+      description = "The number of credits shown in parenthesis after the course code and title"
+    )
+  )
+)
+```
+
+## All 50 ISA Course 
+
+```{r all_50}
+chat = ellmer::chat_openai(
+  model = "gpt-5.6-luna"
+)
+
+course_vec = rvest::read_html("https://bulletin.miamioh.edu/courses-instruction/isa") |> 
+  rvest::html_elements(".courseblock") |> rvest::html_text2()
+
+# similar to sometjing idk 
+course_list = as.list(course_vec) # make a list 
+
+# did for one class now doing for all 50 
+type_course = ellmer::type_object(
+    # code is the name of the first element in the returned sublist 
+    # type_string -> forces that element to be of the type chr
+    code = ellmer::type_string(
+      description = "The three letter abbreviation for the course and its number. 
+      for example, ISA 999 or FIN 444"
+    ),
+    name = ellmer::type_string(
+      description = "The title of the course without the three letter abbreviation and the  number. For example, Introduction to Macroeconomic. Do not return a period atfer the name"
+    ), 
+    cr_hr = ellmer::type_integer(
+      description = "The number of credits shown in parenthesis after the course code and title"
+    )
+  )
+
+isa_df = ellmer::parallel_chat_structured(
+  chat, 
+  prompts = course_list,
+  type = type_course, 
+  include_tokens = T, 
+  include_cost = T
+)
+
+sum(isa_df$cost)
+```
+
+

@@ -17,7 +17,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## `robotstxt` example': MU Bulletin
 
-In the chunk below we used the [robotstxt package](https://github.com/ropensci/robotstxt) to check if we are allowd to write a program that scrapes the page: 
+In the chunk below we used the [robotstxt package](https://github.com/ropensci/robotstxt) to check if we are allowed to write a program that scrapes the page: 
 <https://bulletin.miamioh.edu/courses-instruction/isa/>
 ```{r bulletin}
 robotstxt::paths_allowed(
