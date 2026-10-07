@@ -147,5 +147,5 @@ fsb_directory |> dplyr::count(name) |> dplyr::filter(n > 1)
 ## Final output
 
 ```{r printing_final_head}
-head(fsb_directory)
+head(fsb_directory) |> print(width = Inf)
 ```
