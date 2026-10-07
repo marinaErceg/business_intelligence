@@ -1,0 +1,151 @@
+---
+title: "Assignment 07: Web Scraping the FSB Directory"
+author: "Marina Erceg"
+date: "2026-10-06"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true 
+    code_download: true 
+    code_folding: show
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(rvest)
+```
+
+## Goal
+
+Build one data frame with every faculty/staff member from all seven FSB departments, with four columns: department, name, position, and website. Print it with `head()`.
+
+## Step 1: Check that scraping is allowed
+
+```{r checking_webpage_scrapability}
+robotstxt::paths_allowed(
+  paths = "/fsb/directory/?up=/query/all/all/Information%20Systems%20--%20Analytics/all",
+  domain = "miamioh.edu"
+)
+```
+
+## Step 2: Get one department working first
+
+```{r loading_isa_directory_page}
+url_isa = "https://miamioh.edu/fsb/directory/?up=/query/all/all/Information%20Systems%20--%20Analytics/all"
+
+page_isa = rvest::read_html(url_isa)
+
+all_rows_isa = page_isa |> rvest::html_elements("tr")
+people_isa = all_rows_isa[-1]
+
+length(people_isa)
+```
+
+```{r building_isa_table}
+isa_department = people_isa |> rvest::html_element("td:nth-child(1)") |> rvest::html_text2()
+isa_name = people_isa |> rvest::html_element("strong a") |> rvest::html_text2()
+isa_position = people_isa |> rvest::html_element("i") |> rvest::html_text2() |> stringr::str_squish()
+isa_website = people_isa |> rvest::html_element("strong a") |> rvest::html_attr("href")
+
+isa_df = tibble::tibble(
+  department = isa_department,
+  name = isa_name,
+  position = isa_position,
+  website = isa_website
+)
+```
+
+```{r previewing_isa_table}
+head(isa_df)
+
+colSums(is.na(isa_df))
+```
+
+## Step 3: Turn it into a function
+
+```{r defining_scrape_fsb_dept_function}
+scrape_fsb_dept = function(dept_query) {
+
+  dept_url = paste0(
+    "https://miamioh.edu/fsb/directory/?up=/query/all/all/",
+    utils::URLencode(dept_query),
+    "/all"
+  )
+
+  Sys.sleep(1)
+
+  dept_page = rvest::read_html(dept_url)
+  dept_all_rows = dept_page |> rvest::html_elements("tr")
+  dept_people = dept_all_rows[-1]
+
+  dept_df = tibble::tibble(
+    department = dept_people |> rvest::html_element("td:nth-child(1)") |> rvest::html_text2(),
+    name = dept_people |> rvest::html_element("strong a") |> rvest::html_text2(),
+    position = dept_people |> rvest::html_element("i") |> rvest::html_text2() |> stringr::str_squish(),
+    website = dept_people |> rvest::html_element("strong a") |> rvest::html_attr("href")
+  )
+
+  return(dept_df)
+}
+```
+
+```{r testing_function_on_isa}
+test_isa = scrape_fsb_dept("Information Systems -- Analytics")
+
+head(test_isa)
+```
+
+## Step 4: Run it on all seven departments
+
+```{r scraping_all_seven_departments}
+fsb_dept_queries = c(
+  "Accountancy",
+  "Economics",
+  "Entrepreneurship",
+  "Finance",
+  "Information Systems -- Analytics",
+  "Marketing",
+  "Management"
+)
+
+fsb_directory_raw = purrr::map_df(.x = fsb_dept_queries, .f = scrape_fsb_dept)
+```
+
+The directory lists some people under a different department than the one searched (for example, a Marketing search returns people from the First-Year Integrated Core), and some people show up in more than one search. This keeps only the seven departments and drops exact duplicate rows.
+
+```{r keeping_seven_departments_and_removing_duplicates}
+fsb_seven_departments = c(
+  "Accountancy",
+  "Economics",
+  "Entrepreneurship",
+  "Finance",
+  "Information Systems & Analytics",
+  "Marketing",
+  "Management"
+)
+
+fsb_directory = fsb_directory_raw |>
+  dplyr::filter(department %in% fsb_seven_departments) |>
+  dplyr::distinct()
+```
+
+## Step 5: Check the result before knitting
+
+```{r checking_final_data_quality}
+dplyr::count(fsb_directory, department)
+
+colSums(is.na(fsb_directory))
+
+nrow(fsb_directory_raw)
+nrow(fsb_directory)
+
+fsb_directory |> dplyr::count(name) |> dplyr::filter(n > 1)
+```
+
+## Final output
+
+```{r printing_final_head}
+head(fsb_directory)
+```
