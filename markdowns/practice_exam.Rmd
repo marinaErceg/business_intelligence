@@ -1,0 +1,161 @@
+---
+title: "Practice Exam"
+author: "Marina Erceg"
+date: "2026-10-12"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true 
+    code_download: true 
+    code_folding: show
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load in hibp dataset
+```{r load_in_dataset_one}
+hibp = jsonlite::fromJSON("data/hibp_data.json")
+```
+
+## Question 1
+**Answer: color (hue)** - blue line = Democrat, red line = Republican.
+Source: read from the chart. Class 01 deck, slides "Critique a Chart from Our Dashboard" and "Communicate Ideas: A Chart in the Wild" (visual encodings: position, length, color).
+
+## Question 2
+**Answer: True** (my judgment, not verified). Each county is placed by its map position (x and y); color only shows the % vaccinated.
+Source: Class 01 deck, "Analyze Data: The 1854 Cholera Outbreak" (position on a map carries the information). I found no slide about this exact video.
+
+## Question 3
+**Answer: True.** `lst[[2]]` is `population`, which is itself a list, so `[[ ]]` returns a list.
+Source: Class 04 deck "[ ] vs [[ ]] on a List"; Class 05 deck "One Table for Three Brackets"; your class04.Rmd lines 69-74 and class05.Rmd lines 25-31.
+```{r question_3}
+lst = list(
+  gdp = data.frame(year = c(2020, 2021, 2022), values = c(19200, 20500, 21300), units = "USD billions"),
+  population = list(country = "United States", year = c(2020, 2021, 2022), values = c(325, 331, 335), units = "millions"),
+  indicators = c("gdp", "population", "inflation"),
+  inflation_rate = 3.2
+)
+class(lst[[2]])   # "list" -> True
+```
+
+## Question 4
+```{r question_4}
+dplyr::glimpse(hibp)
+nrow(hibp)   # Q4 -> 42759
+```
+**Answer: 42759** (RAN in RStudio). Source: Class 04 deck "Looking at a Data Frame" (nrow); your hw07.Rmd line 141.
+
+## Question 5 
+```{r question_5}
+hibp$BreachName[500]           # Q5 -> "Adobe" (so Dropbox is False)
+```
+**Answer: False** - row 500 is Adobe (RAN). Source: Class 05 deck "One Table for Three Brackets"; your class04.Rmd line 48.
+
+## Question 6 
+```{r question_6}
+# emails with the domain miamioh.edu?
+
+sum(grepl('miamioh.edu', hibp$Email))               # Q6 -> 7059
+sum(endsWith(hibp$Email, '@miamioh.edu'))           # Q6 check -> 7059
+```
+**Answer: 7059** (RAN; both methods agree). Source: Class 10 deck, Assignments slide (sum(grepl(...))).
+
+## Question 7 
+```{r question_7}
+library(httr2); library(rvest)
+robotstxt::paths_allowed('https://en.wikipedia.org/wiki/Miami_University')
+
+pt = request('https://api.weather.gov/points/26.1420,-81.7948') |> req_user_agent('student isa401') |> req_perform() |> resp_body_json()
+str(pt$properties[c('gridId','gridX','gridY')])   # MFL, 45, 60
+for (p in c('26.1420,-81.7948','26.1167,-81.7954','26.17,-81.77')) {x = request(paste0('https://api.weather.gov/points/', p)) |> req_user_agent('student isa401') |> req_perform() |> resp_body_json(); cat(p, x$properties$gridId, x$properties$gridX, x$properties$gridY, '\n')}   # 45/60, 45/59, 46/61
+```
+**Answer: True** (paths_allowed returned TRUE, RAN). Source: Class 10 deck "The Scraping Workflow" and "Check Three Sites"; your class10.Rmd lines 23-60.
+
+## Question 10
+(uses the `pt` request from Question 7)
+
+**Answer: gridX = 45** for Naples city center (RAN against api.weather.gov; nearby points gave 45 or 46). Source: Class 08 deck "A Request, Step by Step"; your Class_08.Rmd lines 24-38.
+
+## Question 8 
+```{r question_8}
+u = 'https://miamioh.edu/policy-library/students/undergraduate/academic-regulations/index.html'
+
+mu_policies = read_html(u) |> html_elements('a.news-lockup__body-link') |> html_attr('href')
+length(mu_policies)   # 27
+```
+**Answer: 27 links** (RAN; character vector, mostly relative links). Source: Class 10 deck "The rvest Process" and "Choosing an Extraction Function"; your hw07.Rmd lines 38-50 and 79-87.
+
+## Question 9 
+```{r question_9}
+tabs = read_html('https://miamiredhawks.com/sports/swimming-and-diving/roster') |>
+  html_elements('table') |>
+  html_table()
+
+
+women = tabs[[1]][-1, c(1, 3)]; names(women) = c('name', 'academic year')
+men   = tabs[[2]][-1, c(1, 3)]; names(men)   = c('name', 'academic year')
+swim_df = dplyr::bind_rows(women, men)
+dim(swim_df)   # 54 x 2 (RAN with column 4 = location)
+```
+**Answer: 54 rows x 2 columns** (name plus a second column; RAN). The roster page has 3 tables (Women, Men, Coaching); the first row of each is the real header, so `[-1, ]` drops it. Your version uses column 3 (academic year) because the requirement says "names and years"; the first line of the question says location (column 4 in my run). Check `tabs[[1]]` to confirm the columns. Source: Class 10 deck "All the Tables on a Wikipedia Page"; Class 11 deck and your class_11_complete.Rmd lines 101-109; `[-1, c(1, 3)]` brackets: Class 05 deck "One Table for Three Brackets".
+
+## Question 11
+**Answer: `ip_df`, 10 rows x 17 columns.** One IP was RUN (1 x 17); the 10-IP loop was NOT run because toxic_ips_oct2025.csv was never provided. Source: Class 11 deck (purrr::map_df, .x and .f); Class 08 deck "A Request, Step by Step"; your class_11_complete.Rmd line 89 and hw07.Rmd lines 79-113.
+```{r question_11, eval=FALSE}
+library(httr2)
+ip_api = 'status,continent,country,countryCode,region,regionName,city,district,zip,lat,lon,timezone,currency,isp,org,as,query'
+
+get_ip = function(ip) {
+  request(paste0('http://ip-api.com/json/', ip)) |>
+    req_url_query(fields = ip_api) |>
+    req_perform() |>
+    resp_body_string() |>
+    jsonlite::fromJSON() |>
+    as.data.frame()
+}
+
+ips = readr::read_csv('toxic_ips_oct2025.csv')[[1]]
+length(ips)   # must be 10; if 9, the file has no header: use read_csv(..., col_names = FALSE)
+ip_df = purrr::map_df(ips, function(x) { Sys.sleep(0.5); get_ip(x) })
+dim(ip_df)    # target: 10 x 17
+```
+
+## Question 12
+**Answer: probably "neither tidy nor consistent" - UNVERIFIED GUESS** (I could not open the file). Run glimpse first. Tidy = one variable per column, one observation per row, one value per cell (years across the top means not tidy). In Class 13, "consistent" means missing and impossible values (named, not taught). Source: Class 13 deck "Technically Correct Data" and the tidy rules.
+```{r question_12, eval=FALSE}
+wb_tbl = readr::read_csv('https://raw.githubusercontent.com/fmegahed/isa401/main/data/wb_hospital_beds.csv')
+dplyr::glimpse(wb_tbl)
+```
+
+## Question 13
+**Answer: institution** (one row per institution, 717 rows; RAN).
+Source: Class 01 deck unit of analysis (rows != crashes); Class 13 deck tidy rule "every row is one observation".
+```{r question_13}
+ntse_tbl = readr::read_csv('data/ntse_endowment_us_and_canada_2020.csv')
+dim(ntse_tbl)   # 717 x 9
+```
+
+## Question 14
+**Answer: not technically correct.** `id`, `hbcu_indicator` and `carnegie_category` are codes stored as numbers (should be text). read_csv already trims the spaces in ` endowment_fy_20 `, so the name needed no fix in my run (RAN). Source: Class 13 deck "Technically Correct Data" (reasonable names + correct types).
+```{r question_14}
+sapply(ntse_tbl, class)
+ntse_tbl = ntse_tbl |>
+  dplyr::mutate(id = as.character(id),
+                hbcu_indicator = as.character(hbcu_indicator),
+                carnegie_category = as.character(carnegie_category))
+sapply(ntse_tbl, class)
+```
+
+## Question 15
+**Answer (draft, my wording; edit freely):**
+
+- R scripts are repeatable: rerunning the same code gives the same result, unlike manual spreadsheet steps that are easy to break.
+- Code can pull data from APIs, scraped pages and JSON files that spreadsheets cannot reach easily.
+- Cleaning, analysis and charts live in one workflow, so changes flow through everything automatically.
+- Version control (Git) tracks every change to the code, so mistakes can be undone and work shared.
+- Scripts are readable and reusable on new data, while spreadsheet errors are hard to spot.
+
+Source: Class 02 deck "Spreadsheets That Made the News" and "Learning Objectives".

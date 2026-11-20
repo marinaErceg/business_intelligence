@@ -1,0 +1,168 @@
+---
+title: "Exam 01"
+author: "Marina Erceg"
+date: "2026-10-12"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true 
+    code_download: true 
+    code_folding: show
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Question 1
+```{r question_1}
+# read in 
+penguins = readr::read_csv("https://raw.githubusercontent.com/fmegahed/isa401/main/data/penguin_captures.csv")
+
+dplyr::glimpse(penguins)
+
+penguins|> dplyr::count(species, sort = TRUE)
+
+penguins |>
+  dplyr::group_by(penguins$species) |>
+  dplyr::summarize(n = dplyr::n()) |>
+  dplyr::arrange(dplyr::desc(n))      
+```
+
+## Question 3 
+```{r question_3}
+crashes_by_day = c(2020, 2241, 2327, 2285, 2380, "1866", 1664)
+names(crashes_by_day) = c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+sum(crashes_by_day > 300)
+```
+
+## Question 4 
+```{r question_4}
+library(jsonlite)
+
+campus <- fromJSON("https://isa401-find-your-seat.vercel.app/campus.json")
+
+# Option 1: the floor's "sections" field
+campus$Farmer$floors$`1`$sections
+# 69
+
+# Option 2: add up the rooms yourself, as a cross-check
+sum(campus$Farmer$floors$`1`$rooms$all_sections)
+# 69
+```
+
+## Question 6 
+```{r question_6}
+# how many traffic crashes happened in Cincinnati in July 2026?
+
+# Claude code from exam 
+library(httr2)
+
+resp <- request("https://data.cincinnati-oh.gov/resource/rvmt-pkmq.json") |>
+  req_url_query(
+    `$select` = "count(*) AS n",
+    `$where` = "crashdate >= '2026-07-01T00:00:00' AND crashdate < '2026-08-01T00:00:00'"
+  ) |>
+  req_perform() |>
+  resp_body_json()
+
+as.integer(resp[[1]]$n)
+
+# Code checking 
+
+resp <- httr2::request("https://data.cincinnati-oh.gov/resource/rvmt-pkmq.json") |>
+  httr2::req_url_query(
+    `$where` = "crashdate between '2026-07-01T00:00:00' and '2026-07-31T23:59:59'",
+    `$limit` = 50000
+  ) |>
+  httr2::req_perform()
+
+crash_df <- resp |> httr2::resp_body_json(simplifyVector = TRUE)
+
+nrow(crash_df)                          # people/vehicles (rows): 2400
+dplyr::n_distinct(crash_df$instanceid)  # crashes: 1166
+
+crash_df |> dplyr::count(instanceid, sort = TRUE) |> head()
+dplyr::n_distinct(crash_df$localreportno)
+```
+
+## Question 7
+```{r question_7}
+library(rvest)
+library(purrr)
+
+base_url <- "https://isa401-salvage.vercel.app/exam/registry?start="
+starts   <- seq(from = 1, to = 321, by = 40)
+
+get_classes <- function(s) {
+  Sys.sleep(1)
+  rvest::read_html(paste0(base_url, s)) |>
+    rvest::html_elements(".ship-class") |>
+    rvest::html_text2()
+}
+
+classes <- purrr::map(starts, get_classes) |> unlist()
+
+length(classes)               # expect 360
+table(classes)
+sum(classes == "Dreadnought")
+```
+
+## Question 8 & 9 
+```{r question_8/9}
+ncse_tbl = readr::read_csv("https://raw.githubusercontent.com/fmegahed/isa401/main/data/ncse_endowment_us_and_canada_2025.csv")
+dplyr::glimpse(ncse_tbl)
+```
+
+## Question 10 
+```{r question_10}
+library(dplyr)
+
+jobs <- data.frame(
+  posting = 1:2400,
+  location_state = rep(state.abb[1:12], times = 200)
+)
+
+nrow(jobs)                      # 2400
+dplyr::n_distinct(jobs$location_state)   # 12
+
+result <- jobs |>
+  dplyr::group_by(location_state) |>
+  dplyr::summarise(postings = dplyr::n())
+
+nrow(result)                    # should print 12
+result
+```
+
+## Question 11
+```{r question_11}
+library(ellmer)
+
+# 1. Create a chat object
+chat <- ellmer::chat_openai(
+  model = "gpt-5.6-luna"
+)
+
+# 2. Define the Airbnb listing description
+description <- "This one of a kind, turn of the century, fully restored mansion is just waiting for you to come and enjoy the vast amenities this house offers! This historic Victorian Mansion was built in the last 1800's and has been fully restored and updated with one thing in mind--luxury! We boast a slate pool table, 10 person hot tub, a custom made fire table, a built in giant projector screen for streaming, arcade games, and much much more! We comfortably sleep 19 guests with 9 dedicated bedrooms."
+
+# 3. Define the structured output schema
+schema <- ellmer::type_object(
+  property_type = ellmer::type_string(),
+  max_guests = ellmer::type_integer(),
+  num_bedrooms = ellmer::type_integer(),
+  key_amenities = ellmer::type_string(
+    "List key amenities separated by |"
+  )
+)
+
+# 4. Extract structured information
+result <- chat$chat_structured(
+  description,
+  type = schema
+)
+
+# 5. Display results
+print(result)
+```
